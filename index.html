@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Registration with Pass Slip</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 15px;
+      margin-top: 15px;
+      margin-right: 10px;
+      background-color: #007bff;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .history, .pass-slip {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 30px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .entry {
+      border-bottom: 1px solid #ccc;
+      padding: 10px 0;
+    }
+    .pass-slip {
+      border: 2px dashed #007bff;
+    }
+    .pass-slip h3 {
+      text-align: center;
+      margin-top: 0;
+    }
+    .pass-slip p {
+      line-height: 1.6;
+      font-size: 16px;
+    }
+    .hidden {
+      display: none;
+    }
+    .center {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Enriquez Technological Innovations University</h1>
+  <h2>Student Registration Form</h2>
+
+  <form id="registrationForm">
+    <label>First Name:</label>
+    <input type="text" id="firstname" required />
+    <label>Last Name:</label>
+    <input type="text" id="lastname" required />
+    <label>Middle Name:</label>
+    <input type="text" id="middlename" />
+    <label>Course:</label>
+    <input type="text" id="course" required />
+    <button type="submit">Submit</button>
+    <button type="button" onclick="requestPassword('view')">View History</button>
+  </form>
+
+  <div class="pass-slip hidden" id="passSlip">
+    <h3>🎓 Student Pass Slip</h3>
+    <p><strong>Student ID:</strong> <span id="studentId"></span></p>
+    <p><strong>Full Name:</strong> <span id="fullName"></span></p>
+    <p><strong>Course:</strong> <span id="courseName"></span></p>
+    <p><strong>Date Enrolled:</strong> <span id="timestamp"></span></p>
+    <p class="center">✔️ Officially Enrolled</p>
+    <div class="center">
+      <button onclick="window.print()">🖨️ Print Slip</button>
+    </div>
+  </div>
+
+  <div class="history hidden" id="historySection">
+    <h2>📜 Registration History</h2>
+    <div id="historyList"></div>
+  </div>
+
+  <script>
+    const correctPassword = "admin123";
+    let currentStudent = null;
+
+    function generateStudentID() {
+      const now = Date.now();
+      return "ETIU-" + Math.floor(1000 + Math.random() * 9000) + "-" + now.toString().slice(-4);
+    }
+
+    document.getElementById("registrationForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const firstname = document.getElementById("firstname").value.trim();
+      const lastname = document.getElementById("lastname").value.trim();
+      const middlename = document.getElementById("middlename").value.trim();
+      const course = document.getElementById("course").value.trim();
+      const time = new Date().toISOString();
+      const studentID = generateStudentID();
+      const entry = { firstname, lastname, middlename, course, studentID, timestamp: time };
+      currentStudent = entry;
+      await fetch("api.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry)
+      });
+      document.getElementById("fullName").textContent = firstname + " " + middlename + " " + lastname;
+      document.getElementById("courseName").textContent = course;
+      document.getElementById("timestamp").textContent = new Date(time).toLocaleString();
+      document.getElementById("studentId").textContent = studentID;
+      document.getElementById("passSlip").classList.remove("hidden");
+      document.getElementById("registrationForm").reset();
+    });
+
+    function requestPassword(action) {
+      const input = prompt("🔐 Enter password:");
+      if (input === correctPassword && action === 'view') viewHistory();
+      else if (input && input !== correctPassword) alert("❌ Incorrect password.");
+    }
+
+    async function viewHistory() {
+      const response = await fetch("api.php");
+      const data = await response.json();
+      const historyList = document.getElementById("historyList");
+      document.getElementById("historySection").classList.remove("hidden");
+      historyList.innerHTML = data.length ? "" : "<p>📭 No registration history found.</p>";
+      data.forEach((entry, index) => {
+        const div = document.createElement("div");
+        div.className = "entry";
+        div.innerHTML = `
+          <strong>Student ${index + 1}</strong><br>
+          ID: ${entry.student_id}<br>
+          Name: ${entry.firstname} ${entry.middlename} ${entry.lastname}<br>
+          Course: ${entry.course}<br>
+          Enrolled at: ${new Date(entry.enrolled_at).toLocaleString()}
+        `;
+        historyList.appendChild(div);
+      });
+    }
+  </script>
+
+</body>
+</html>
